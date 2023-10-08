@@ -1,16 +1,20 @@
 "use client";
 
+import { PAYMASTER_ADDRESS, SAMPLE_ADDRESS } from "@/lib/web3/deployed";
+import SampleJson from "@/lib/web3/artifacts/Sample.json";
+
+import { ConnectButton } from "@rainbow-me/rainbowkit";
 import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
-const paymasterAddress = "0x1Bd7B5e0b9a8F0Fdc009e15543456Dbe9E90bDB4";
+import { Contract, Web3Provider, utils } from "zksync-web3";
 
 export default function Wallet() {
   const router = useRouter();
   const searchParams = useSearchParams();
 
-  const code = searchParams.get("code");
+  const code = searchParams?.get("code");
 
   useEffect(() => {
     (async () => {
@@ -41,6 +45,28 @@ export default function Wallet() {
 
   return (
     <main>
+      <ConnectButton />
+      <button
+        onClick={async () => {
+          const provider = new Web3Provider((window as any).ethereum);
+          const signer = await provider.getSigner();
+          const contract = new Contract(SAMPLE_ADDRESS, SampleJson.abi, signer);
+          const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+            type: "General",
+            innerInput: new Uint8Array(),
+          });
+          const tx = await contract.test("message", {
+            customData: {
+              gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+              paymasterParams: paymasterParams,
+            },
+          });
+          console.log(tx.hash);
+          await tx.wait();
+        }}
+      >
+        Tx
+      </button>
       {!code && (
         <button
           onClick={() => {

@@ -9,6 +9,7 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@rainbow-me/rainbowkit": "^1.1.1",
     "@types/node": "20.8.3",
     "@types/react": "18.2.25",
     "@types/react-dom": "18.2.11",
@@ -20,6 +21,9 @@
     "react": "18.2.0",
     "react-dom": "18.2.0",
     "tailwindcss": "3.3.3",
-    "typescript": "5.2.2"
+    "typescript": "5.2.2",
+    "viem": "^1.15.4",
+    "wagmi": "^1.4.3",
+    "zksync-web3": "^0.14.3"
   }
 }
