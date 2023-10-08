@@ -18,14 +18,43 @@ contract MyPaymaster is IPaymaster {
         _;
     }
 
-    function validateAndPayForPaymasterTransaction  (
+    function validateAndPayForPaymasterTransaction(
         bytes32,
         bytes32,
         Transaction calldata _transaction
-    ) external payable onlyBootloader returns (bytes4 magic, bytes memory context) {
+    )
+        external
+        payable
+        onlyBootloader
+        returns (bytes4 magic, bytes memory context)
+    {
         magic = PAYMASTER_VALIDATION_SUCCESS_MAGIC;
-        // TO BE IMPLEMENTED
+        require(
+            _transaction.paymasterInput.length >= 4,
+            "The standard paymaster input must be at least 4 bytes long"
+        );
         
+        bytes4 paymasterInputSelector = bytes4(
+            _transaction.paymasterInput[0:4]
+        );
+        
+        if (paymasterInputSelector == IPaymasterFlow.general.selector) {
+            // address userAddress = address(uint160(_transaction.from));
+        
+            // require(
+            //     nft_asset.balanceOf(userAddress) > 0,
+            //     "User does not hold the required NFT asset and therefore must pay for their own gas!"
+            // );
+        
+            // uint256 requiredETH = _transaction.gasLimit *
+            //     _transaction.maxFeePerGas;
+        
+            // (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{
+            //     value: requiredETH
+            // }("");
+        } else {
+            revert("Invalid paymaster flow");
+        }
     }
 
     function postTransaction (
@@ -39,4 +68,10 @@ contract MyPaymaster is IPaymaster {
     }
 
     receive() external payable {}
+
+    function withdraw(address payable _to) external {
+        uint256 balance = address(this).balance;
+        (bool success, ) = _to.call{value: balance}("");
+        require(success, "Failed to withdraw funds from paymaster.");
+    }
 }

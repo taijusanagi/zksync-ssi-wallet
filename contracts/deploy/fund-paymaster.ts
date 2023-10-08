@@ -2,6 +2,7 @@ import { Provider, Wallet } from "zksync-web3";
 import * as ethers from "ethers";
 import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { Deployer } from "@matterlabs/hardhat-zksync-deploy";
+import { PAYMASTER_ADDRESS } from "../deployed";
 
 export default async function (hre: HardhatRuntimeEnvironment) {
   const privateKey = process.env.PRIVATE_KEY;
@@ -13,18 +14,16 @@ export default async function (hre: HardhatRuntimeEnvironment) {
   const wallet = new Wallet(privateKey);
   const deployer = new Deployer(hre, wallet);
 
-  const sampleArtifact = await deployer.loadArtifact("Sample");
-  const sample = await deployer.deploy(sampleArtifact);
-  await sample.deployed();
-  console.log(`Sample address: ${sample.address}`);
+  console.log("Funding paymaster with ETH");
+  // Supplying paymaster with ETH
+  await (
+    await deployer.zkWallet.sendTransaction({
+      to: PAYMASTER_ADDRESS,
+      value: ethers.utils.parseEther("0.1"),
+    })
+  ).wait();
 
-  // Deploying the paymaster
-  const paymasterArtifact = await deployer.loadArtifact("MyPaymaster");
-  const paymaster = await deployer.deploy(paymasterArtifact);
-  await paymaster.deployed();
-  console.log(`Paymaster address: ${paymaster.address}`);
-
-  let paymasterBalance = await provider.getBalance(paymaster.address);
+  let paymasterBalance = await provider.getBalance(PAYMASTER_ADDRESS);
 
   console.log(`Paymaster ETH balance is now ${paymasterBalance.toString()}`);
   console.log(`Done!`);
