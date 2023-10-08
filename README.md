@@ -2,11 +2,11 @@
 
 ## Description
 
-zkSync SSI Wallet is a simple-to-use, web-based wallet. It uses Onyx SSI SDK, zkSync features, and the Lens Protocol to provide users a seamless and feature-rich experience. A standout feature is its ability to help users save on transaction costs with its innovative gas system.
+zkSync SSI Wallet is a simple-to-use, web-based wallet. It uses Onyx SSI SDK, the Lens Protocol, and zkSync Account Abstraction features to provide users a seamless and feature-rich experience. A standout feature is its ability to help users save on transaction costs with its innovative gas system.
 
 ## How it Works
 
-- **Integration of Onyx SSI SDK with OIDC Backend Wrapper:** zkSync SSI Wallet leverages the Onyx SSI SDK and integrates it with a smooth backend OIDC system. This combination allows for the issuance, holding, and verification of verifiable credentials directly within the frontend wallet application.
+- **Integration of Onyx SSI SDK with Onyx OIDC Wrapper:** zkSync SSI Wallet leverages the Onyx SSI SDK and integrates it with a smooth OIDC system. This combination allows for the issuance, holding, and verification of verifiable credentials directly within the frontend wallet application.
 
 - **Lens Protocol Implementation:** The wallet integrates the Lens Protocol, which allows users to access and manage their social data seamlessly. This feature enhances user experience by providing valuable insights and functionalities based on the user's social data.
 
