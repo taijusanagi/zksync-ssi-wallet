@@ -46,7 +46,7 @@ export default function WalletPage() {
 
   return (
     <main>
-      <ConnectButton />
+      {/* <ConnectButton /> */}
 
       <button
         onClick={async () => {

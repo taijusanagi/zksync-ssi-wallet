@@ -51,12 +51,11 @@ export default function AuthorizePage() {
               console.log("no profile detected");
             } else {
               console.log(data);
-              // sign with handle, delegate did, then post to approve
+              // sign with handle, then post to approve
+              const redirect_uri = "http://localhost:3000/wallet";
+              router.push(`/approve?redirect_uri=${redirect_uri}`);
             }
           }
-
-          // const redirect_uri = "http://localhost:3000/wallet";
-          // router.push(`/approve?redirect_uri=${redirect_uri}`);
         }}
       >
         Authorize
