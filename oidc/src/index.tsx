@@ -1,6 +1,11 @@
 import express from "express";
 import bodyParser from "body-parser";
 
+import React from "react";
+import ReactDOMServer from "react-dom/server";
+import { transform } from "@babel/core";
+import AuthorizeComponent from "./AuthorizeComponent";
+
 const app = express();
 const PORT = 3000;
 
@@ -18,8 +23,25 @@ app.get("/.well-known/openid-configuration", (req, res) => {
 });
 
 app.get("/authorize", (req, res) => {
-  // In a real-world scenario, you'd check client_id, scopes, and other parameters.
-  res.render("authorize");
+  const component = ReactDOMServer.renderToString(
+    <AuthorizeComponent redirect_uri={req.query.redirect_uri as string} />
+  );
+  const html = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+          <meta charset="utf-8">
+          <title>Authorization</title>
+      </head>
+      <body>
+          ${component}
+          <script>
+              // If you have client-side scripts, you can include them here.
+          </script>
+      </body>
+      </html>
+  `;
+  res.send(html);
 });
 
 app.post("/approve", (req, res) => {
