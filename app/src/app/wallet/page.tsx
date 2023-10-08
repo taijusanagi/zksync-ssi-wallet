@@ -4,6 +4,8 @@ import { useRouter } from "next/navigation";
 import { useSearchParams } from "next/navigation";
 import { useEffect } from "react";
 
+const paymasterAddress = "0x1Bd7B5e0b9a8F0Fdc009e15543456Dbe9E90bDB4";
+
 export default function Wallet() {
   const router = useRouter();
   const searchParams = useSearchParams();
