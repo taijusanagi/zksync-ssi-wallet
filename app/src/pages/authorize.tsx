@@ -3,7 +3,7 @@
 import { useRouter } from "next/navigation";
 
 //TODO: integrate Lens
-export default function Authorize() {
+export default function AuthorizePage() {
   const router = useRouter();
 
   return (
