@@ -40,14 +40,24 @@ export default function WalletPage() {
       if (!id_token) {
         return;
       }
-      const { credential } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/credential`, {
+      const ethrProvider = {
+        name: "goerli",
+        rpcUrl: "https://rpc.ankr.com/eth_goerli",
+        registry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
+      };
+      const didEthr = new EthrDIDMethod(ethrProvider);
+      const holder = await didEthr.create();
+      const { vc } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/credential`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ id_token })
+        // the blow implmentations are skipped for the demo
+        // should use header for id_token
+        // should send holder proof
+        body: JSON.stringify({ id_token, holderDid: holder.did })
       }).then(res => res.json());
-      console.log("credential", credential);
+      console.log("vc", vc);
     })();
   }, [code, state]);
 
