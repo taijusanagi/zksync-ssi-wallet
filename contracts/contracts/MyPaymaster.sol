@@ -42,7 +42,6 @@ contract MyPaymaster is IPaymaster, Ownable {
         if (paymasterInputSelector == IPaymasterFlow.general.selector) {        
             uint256 requiredETH = _transaction.gasLimit *
                 _transaction.maxFeePerGas;
-        
             (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{
                 value: requiredETH
             }("");
