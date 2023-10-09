@@ -9,39 +9,47 @@ import { useEffect } from "react";
 
 import { Contract, utils, Provider, Wallet } from "zksync-web3";
 import { EthrDIDMethod } from "@jpmorganchase/onyx-ssi-sdk";
+import crypto from "crypto";
 
 export default function WalletPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-
   const code = searchParams?.get("code");
+  const state = searchParams?.get("state");
 
   useEffect(() => {
     (async () => {
       if (!code) {
+        console.log("code not defined");
         return;
       }
-      const { access_token } = await fetch("http://localhost:3000/token", {
+      const savedState = localStorage.getItem("state");
+      if (!state || state !== savedState) {
+        console.log("state invalid");
+        return;
+      }
+      const { id_token } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/token`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
         body: JSON.stringify({ code })
       }).then(res => res.json());
-      console.log("access_token", access_token);
-      if (!access_token) {
+      console.log("id_token", id_token);
+      // skip nonce check
+      if (!id_token) {
         return;
       }
-      const { credential } = await fetch("http://localhost:3000/credential", {
+      const { credential } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/credential`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ access_token })
+        body: JSON.stringify({ id_token })
       }).then(res => res.json());
       console.log("credential", credential);
     })();
-  }, [code]);
+  }, [code, state]);
 
   return (
     <main>
@@ -79,7 +87,12 @@ export default function WalletPage() {
       {!code && (
         <button
           onClick={() => {
-            router.push("/authorize");
+            const state = crypto.randomBytes(8).toString("hex");
+            const nonce = crypto.randomBytes(8).toString("hex");
+            localStorage.setItem("state", state);
+            localStorage.setItem("nonce", nonce);
+            const redirect_uri = `${process.env.NEXT_PUBLIC_APP_URI}/wallet`;
+            router.push(`/authorize?redirect_uri=${redirect_uri}&state=${state}&nonce=${nonce}`);
           }}
         >
           Authorize with Lens
