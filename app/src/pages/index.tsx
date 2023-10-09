@@ -15,66 +15,22 @@ import { ethrProvider } from "@/lib/did";
 export default function WalletPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
-  const code = searchParams?.get("code");
-  const state = searchParams?.get("state");
   const [holder, setHolder] = useState<DIDWithKeys>();
 
   useEffect(() => {
     (async () => {
       const didEthr = new EthrDIDMethod(ethrProvider);
-      let privateKey;
+      let holder;
       if (localStorage.getItem("privateKey")) {
-        privateKey = localStorage.getItem("privateKey");
+        const privateKey = localStorage.getItem("privateKey") as string;
+        holder = await didEthr.generateFromPrivateKey(privateKey);
       } else {
-        const holderDID = await didEthr.create();
-        privateKey = Buffer.from(holderDID.keyPair.privateKey).toString("hex");
-        localStorage.setItem("privateKey", privateKey);
+        holder = await didEthr.create();
+        localStorage.setItem("privateKey", holder.keyPair.privateKey);
       }
-      const holder = await didEthr.generateFromPrivateKey(privateKey);
       setHolder(holder);
     })();
   }, []);
-
-  useEffect(() => {
-    (async () => {
-      if (!code) {
-        console.log("code not defined");
-        return;
-      }
-      const savedState = localStorage.getItem("state");
-      if (!state || state !== savedState) {
-        console.log("state invalid");
-        return;
-      }
-      const { id_token } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/token`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify({ code })
-      }).then(res => res.json());
-      console.log("id_token", id_token);
-      // skip nonce check in id_token
-      if (!id_token) {
-        return;
-      }
-
-      const didEthr = new EthrDIDMethod(ethrProvider);
-      const holder = await didEthr.create();
-      const { vc } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/credential`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json"
-        },
-        // the blow implmentations are skipped for the demo
-        // should use header for id_token
-        // should send holder proof
-        body: JSON.stringify({ id_token, holderDid: holder.did })
-      }).then(res => res.json());
-      console.log("vc", vc);
-      localStorage.setItem("vc", vc);
-    })();
-  }, [code, state]);
 
   return (
     <main>
@@ -110,7 +66,7 @@ export default function WalletPage() {
           const nonce = crypto.randomBytes(8).toString("hex");
           localStorage.setItem("state", state);
           localStorage.setItem("nonce", nonce);
-          const redirect_uri = `${process.env.NEXT_PUBLIC_APP_URI}`;
+          const redirect_uri = `${process.env.NEXT_PUBLIC_APP_URI}/callback`;
           router.push(`/authorize?redirect_uri=${redirect_uri}&state=${state}&nonce=${nonce}`);
         }}
       >
@@ -128,13 +84,12 @@ export default function WalletPage() {
           const jwtService = new JWTService();
           const presentationPayload = await createPresentation(holder.did, [vc]);
           const vp = await jwtService.signVP(holder, presentationPayload);
-          console.log(vp);
+          console.log("vp", vp);
           const data = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/paymaster`, {
             method: "POST",
             headers: {
               "Content-Type": "application/json"
             },
-
             body: JSON.stringify({ vp })
           }).then(res => res.json());
           console.log(data);

@@ -2,7 +2,11 @@ import { verifyJWT } from "did-jwt";
 import { NextRequest } from "next/server";
 import { ethrProvider, loadIssuer } from "@/lib/did";
 import { verifyPresentationJWT, getSupportedResolvers, EthrDIDMethod, KeyDIDMethod } from "@jpmorganchase/onyx-ssi-sdk";
-//TODO: integrate SSI SDK and signature
+
+import { Contract, Provider, utils, Wallet } from "zksync-web3";
+import PaymasterJson from "@/lib/web3/artifacts/MyPaymaster.json";
+import { PAYMASTER_ADDRESS } from "@/lib/web3/deployed";
+
 export async function POST(request: NextRequest) {
   const issuer = await loadIssuer();
 
@@ -30,7 +34,16 @@ export async function POST(request: NextRequest) {
     throw new Error("vc type invalid");
   }
 
-  // register
-  console.log(verifiedVp.issuer);
-  return Response.json({ signature: "ok" });
+  const privateKey = process.env.PRIVATE_KEY;
+  if (!privateKey) {
+    return;
+  }
+  const provider = new Provider("https://zksync2-testnet.zksync.dev");
+  const ownerWallet = new Wallet(privateKey).connect(provider);
+  const paymaster = new Contract(PAYMASTER_ADDRESS, PaymasterJson.abi, ownerWallet);
+  console.log(verifiedVp.issuer.split(":")[3]);
+  const tx = await paymaster.setLensHolder(verifiedVp.issuer.split(":")[3], true);
+  console.log("tx.hash", tx.hash);
+  await tx.wait();
+  return Response.json({ hash: tx.hash });
 }

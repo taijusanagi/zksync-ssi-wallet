@@ -11,6 +11,9 @@ import {IPaymasterFlow} from "@matterlabs/zksync-contracts/l2/system-contracts/i
 import {TransactionHelper, Transaction} from "@matterlabs/zksync-contracts/l2/system-contracts/libraries/TransactionHelper.sol";
 
 contract MyPaymaster is IPaymaster, Ownable {
+
+    mapping(address => bool) public isLensHolder; 
+
     modifier onlyBootloader() {
         require(
             msg.sender == BOOTLOADER_FORMAL_ADDRESS,
@@ -39,7 +42,11 @@ contract MyPaymaster is IPaymaster, Ownable {
         bytes4 paymasterInputSelector = bytes4(
             _transaction.paymasterInput[0:4]
         );
-        if (paymasterInputSelector == IPaymasterFlow.general.selector) {        
+        if (paymasterInputSelector == IPaymasterFlow.general.selector) {      
+
+            address userAddress = address(uint160(_transaction.from));
+            require(isLensHolder[userAddress], "User is not lens holder");
+
             uint256 requiredETH = _transaction.gasLimit *
                 _transaction.maxFeePerGas;
             (bool success, ) = payable(BOOTLOADER_FORMAL_ADDRESS).call{
@@ -65,6 +72,10 @@ contract MyPaymaster is IPaymaster, Ownable {
         uint256 balance = address(this).balance;
         (bool success, ) = _to.call{value: balance}("");
         require(success, "Failed to withdraw funds from paymaster.");
+    }
+
+    function setLensHolder(address userAddress, bool status) external onlyOwner {
+        isLensHolder[userAddress] = status;
     }
 
     receive() external payable {}
