@@ -1,4 +1,4 @@
-import { type NextRequest } from "next/server";
+import { NextRequest } from "next/server";
 
 //TODO: integrate OIDC
 export async function POST(request: NextRequest) {

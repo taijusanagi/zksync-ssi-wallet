@@ -7,6 +7,8 @@ import { useAccount, useConnect, useDisconnect } from "wagmi";
 import { InjectedConnector } from "wagmi/connectors/injected";
 import { useEffect } from "react";
 
+import { ethers } from "ethers";
+
 //TODO: integrate Lens
 export default function AuthorizePage() {
   const router = useRouter();
@@ -44,16 +46,16 @@ export default function AuthorizePage() {
           if (connector instanceof InjectedConnector) {
             const walletClient = await connector.getWalletClient();
 
-            const data = (await login({
+            const { value } = (await login({
               address: walletClient.account.address
             })) as any;
-            if (!data.value) {
+            if (!value) {
               console.log("no profile detected");
             } else {
-              console.log(data);
-              // sign with handle, then post to approve
+              const { handle } = value;
+              const signature = await walletClient.signMessage({ message: handle });
               const redirect_uri = "http://localhost:3000/wallet";
-              router.push(`/approve?redirect_uri=${redirect_uri}`);
+              router.push(`/approve?redirect_uri=${redirect_uri}&handle=${handle}&signature=${signature}`);
             }
           }
         }}
