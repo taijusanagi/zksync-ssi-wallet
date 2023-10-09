@@ -11,7 +11,8 @@ export const loadIssuer = async () => {
 };
 
 export const ethrProvider = {
-  name: "goerli",
+  name: "zkSync",
+  // registry is out of scope, so using goerli one
   rpcUrl: "https://rpc.ankr.com/eth_goerli",
   registry: "0xdca7ef03e98e0dc2b855be647c39abe984fcf21b"
 };
