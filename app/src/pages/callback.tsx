@@ -40,7 +40,14 @@ export default function WalletPage() {
       }
 
       const didEthr = new EthrDIDMethod(ethrProvider);
-      const holder = await didEthr.create();
+      let holder;
+      if (localStorage.getItem("privateKey")) {
+        const privateKey = localStorage.getItem("privateKey") as string;
+        holder = await didEthr.generateFromPrivateKey(privateKey);
+      } else {
+        holder = await didEthr.create();
+        localStorage.setItem("privateKey", holder.keyPair.privateKey);
+      }
       const { vc } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/credential`, {
         method: "POST",
         headers: {

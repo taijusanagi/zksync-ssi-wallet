@@ -8,7 +8,14 @@ import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Contract, utils, Provider, Wallet } from "zksync-web3";
-import { DIDWithKeys, EthrDIDMethod, JWTService, createPresentation } from "@jpmorganchase/onyx-ssi-sdk";
+import {
+  DIDWithKeys,
+  EthrDIDMethod,
+  JWTService,
+  KeyDIDMethod,
+  createPresentation,
+  getSupportedResolvers
+} from "@jpmorganchase/onyx-ssi-sdk";
 import crypto from "crypto";
 import { ethrProvider } from "@/lib/did";
 
@@ -19,13 +26,16 @@ const inter = Inter({ subsets: ["latin"] });
 import PaymasterJson from "@/lib/web3/artifacts/MyPaymaster.json";
 import { ethers } from "ethers";
 
+import { verifyJWT } from "did-jwt";
+
 export default function WalletPage() {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const [holder, setHolder] = useState<DIDWithKeys>();
   const [balance, setBalance] = useState("0");
   const [vc, setVc] = useState("");
+  const [decodedVc, setDecodedVc] = useState<any>();
   const [isLensHolder, setIsLensHolder] = useState(false);
+  const [isVcModalOpen, setIsVcModalOpen] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -50,7 +60,16 @@ export default function WalletPage() {
 
       const vc = localStorage.getItem("vc");
       if (vc) {
-        setVc(vc);
+        const didEthr = new EthrDIDMethod(ethrProvider);
+        const didKey = new KeyDIDMethod();
+        const resolver = getSupportedResolvers([didEthr, didKey]);
+        const decoded = await verifyJWT(vc, { resolver });
+        console.log(decoded.payload);
+        console.log(holder.did);
+        if (decoded.payload.sub === holder.did) {
+          setVc(vc);
+          setDecodedVc(decoded);
+        }
       }
     })();
   }, []);
@@ -94,12 +113,42 @@ export default function WalletPage() {
                 </button>
               )}
               {vc && (
-                <div className="relative h-40 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-lg shadow-lg mb-2">
-                  <div className="absolute top-2 left-2">
-                    <img src="lens.png" alt="Logo" className="mb-2 w-12 h-12 mx-auto" />
+                <>
+                  <div
+                    className="relative h-40 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-lg shadow-lg mb-2 cursor-pointer"
+                    onClick={() => setIsVcModalOpen(true)}
+                  >
+                    <div className="absolute top-2 left-2">
+                      <img src="lens.png" alt="Logo" className="mb-2 w-12 h-12 mx-auto" />
+                    </div>
+                    <div className="absolute bottom-2 right-2">Lens Handle</div>
                   </div>
-                  <div className="absolute bottom-2 right-2">Lens Handle</div>
-                </div>
+                  {isVcModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
+                      <div
+                        className="absolute inset-0 bg-black opacity-50"
+                        onClick={() => setIsVcModalOpen(false)}
+                      ></div>
+                      <div className="relative z-10 bg-white py-4 px-6 rounded-xl shadow-lg max-w-xl w-full mx-4">
+                        <header className="flex justify-between items-center mb-2">
+                          <h2 className="text-sm font-bold text-gray-700">VC Detail</h2>
+                          <button
+                            onClick={() => setIsVcModalOpen(false)}
+                            className="text-2xl text-gray-400 hover:text-gray-500"
+                          >
+                            &times;
+                          </button>
+                        </header>
+                        <pre
+                          className="p-2 rounded border border-gray-200 bg-gray-50 overflow-x-auto overflow-y-auto max-h-80"
+                          style={{ fontSize: "10px" }}
+                        >
+                          <code className="break-all">{JSON.stringify(decodedVc, null, 2)}</code>
+                        </pre>
+                      </div>
+                    </div>
+                  )}
+                </>
               )}
 
               {!isLensHolder && (
@@ -126,6 +175,7 @@ export default function WalletPage() {
                       body: JSON.stringify({ vp })
                     }).then(res => res.json());
                     console.log(data);
+                    setIsLensHolder(true);
                   }}
                 >
                   Present Lens VC to Paymaster
