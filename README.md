@@ -1,6 +1,6 @@
 # zkSync SSI Wallet
 
-Empower your crypto journey with seamless credentials, social insights, and cost-efficient transactions.
+Empower your crypto journey with credentials.
 
 ## Description
 
