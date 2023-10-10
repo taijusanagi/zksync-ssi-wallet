@@ -4,7 +4,6 @@ import { PAYMASTER_ADDRESS, SAMPLE_ADDRESS } from "@/lib/web3/deployed";
 import SampleJson from "@/lib/web3/artifacts/Sample.json";
 
 import { useRouter } from "next/navigation";
-import { useSearchParams } from "next/navigation";
 import { useEffect, useState } from "react";
 
 import { Contract, utils, Provider, Wallet } from "zksync-web3";
@@ -27,6 +26,13 @@ import PaymasterJson from "@/lib/web3/artifacts/MyPaymaster.json";
 import { ethers } from "ethers";
 
 import { verifyJWT } from "did-jwt";
+import { Core } from "@walletconnect/core";
+import { Web3Wallet } from "@walletconnect/web3wallet";
+
+const SESSION_REQUEST_SEND_TRANSACTION = "eth_sendTransaction";
+const SESSION_REQUEST_ETH_SIGN = "eth_sign";
+const SESSION_REQUEST_PERSONAL_SIGN = "personal_sign";
+const SESSION_REQUEST_ETH_SIGN_V4 = "eth_signTypedData_v4";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -36,6 +42,31 @@ export default function WalletPage() {
   const [decodedVc, setDecodedVc] = useState<any>();
   const [isLensHolder, setIsLensHolder] = useState(false);
   const [isVcModalOpen, setIsVcModalOpen] = useState(false);
+  const [walletConnectURL, setWalletConnectURL] = useState("");
+  const [web3Wallet, setWeb3Wallet] = useState<any>();
+  const [isConnected, setIsConnected] = useState(false);
+  const [topic, setTopic] = useState("");
+
+  const sendTx = async () => {
+    if (!holder) {
+      throw new Error("holder not defined");
+    }
+    const provider = new Provider("https://zksync2-testnet.zksync.dev");
+    const signer = new Wallet(holder.keyPair.privateKey).connect(provider);
+    const contract = new Contract(SAMPLE_ADDRESS, SampleJson.abi, signer);
+    const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+      type: "General",
+      innerInput: new Uint8Array()
+    });
+    const tx = await contract.test("message", {
+      customData: {
+        gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+        paymasterParams: paymasterParams
+      }
+    });
+    console.log(tx.hash);
+    await tx.wait();
+  };
 
   useEffect(() => {
     (async () => {
@@ -70,6 +101,52 @@ export default function WalletPage() {
           setVc(vc);
           setDecodedVc(decoded);
         }
+      }
+      const metadata = {
+        name: "zkSync SSI Wallet",
+        description: "Empower your crypto journey with credentials.",
+        url: "http://localhost:3000",
+        icons: []
+      };
+      const core = new Core({
+        projectId: "cffe9608a02c00c7947b9afd9dacbc70"
+      });
+      const web3Wallet = await Web3Wallet.init({
+        core,
+        metadata
+      });
+      web3Wallet.on("session_proposal", async proposal => {
+        const session = await web3Wallet.approveSession({
+          id: proposal.id,
+          namespaces: {
+            eip155: {
+              chains: ["eip155:5", "eip155:280"],
+              methods: [
+                SESSION_REQUEST_SEND_TRANSACTION,
+                SESSION_REQUEST_ETH_SIGN,
+                SESSION_REQUEST_PERSONAL_SIGN,
+                SESSION_REQUEST_ETH_SIGN_V4
+              ],
+              events: ["chainChanged", "accountsChanged"],
+              accounts: [`eip155:280:${address}`]
+            }
+          }
+        });
+        setIsConnected(true);
+        setTopic(session.topic);
+      });
+      web3Wallet.on("session_request", async request => {
+        if (request.params.request.method === "eth_sendTransaction") {
+          console.log("eth_sendTransaction");
+        }
+      });
+      setWeb3Wallet(web3Wallet);
+      const sessions = await web3Wallet.getActiveSessions();
+      const isConnected = Object.keys(sessions).length > 0;
+      setIsConnected(isConnected);
+      if (isConnected) {
+        const topic = Object.keys(sessions)[0];
+        setTopic(topic);
       }
     })();
   }, []);
@@ -185,31 +262,49 @@ export default function WalletPage() {
             </div>
             <div>
               <label className="form-label block text-gray-700 font-bold mb-2">Connect dApps</label>
-              <button
-                className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
-                onClick={async () => {
-                  if (!holder) {
-                    throw new Error("holder not defined");
-                  }
-                  const provider = new Provider("https://zksync2-testnet.zksync.dev");
-                  const signer = new Wallet(holder.keyPair.privateKey).connect(provider);
-                  const contract = new Contract(SAMPLE_ADDRESS, SampleJson.abi, signer);
-                  const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
-                    type: "General",
-                    innerInput: new Uint8Array()
-                  });
-                  const tx = await contract.test("message", {
-                    customData: {
-                      gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
-                      paymasterParams: paymasterParams
-                    }
-                  });
-                  console.log(tx.hash);
-                  await tx.wait();
-                }}
-              >
-                Test Tx
-              </button>
+              {!isConnected && (
+                <>
+                  <input
+                    type="text"
+                    value={walletConnectURL}
+                    onChange={e => setWalletConnectURL(e.target.value)}
+                    className="py-3 px-2 mb-4 w-full border rounded-lg text-xs"
+                    placeholder="wc:"
+                  />
+                  <button
+                    className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
+                    disabled={isConnected}
+                    onClick={async () => {
+                      if (!web3Wallet) {
+                        return;
+                      }
+                      await web3Wallet.core.pairing.pair({
+                        uri: walletConnectURL
+                      });
+                    }}
+                  >
+                    Connect dApps with Wallet Connect
+                  </button>
+                </>
+              )}
+              {isConnected && (
+                <>
+                  <button
+                    className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full mb-2"
+                    disabled={!isConnected}
+                    onClick={async () => {
+                      if (!web3Wallet) {
+                        return;
+                      }
+                      await web3Wallet.disconnectSession({ topic });
+                      setIsConnected(false);
+                    }}
+                  >
+                    Disconnect
+                  </button>
+                  <p className="text-xs mb-2 text-green-600 text-right">Already connected with dApp</p>
+                </>
+              )}
             </div>
           </div>
         </div>
