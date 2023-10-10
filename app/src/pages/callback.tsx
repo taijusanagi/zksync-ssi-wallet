@@ -5,6 +5,7 @@ import { useEffect } from "react";
 import { EthrDIDMethod } from "@jpmorganchase/onyx-ssi-sdk";
 import { ethrProvider } from "@/lib/did";
 import { useRouter } from "next/navigation";
+import { FaSpinner } from "react-icons/fa";
 
 export default function WalletPage() {
   const router = useRouter();
@@ -16,11 +17,13 @@ export default function WalletPage() {
     (async () => {
       if (!code) {
         console.log("code not defined");
+        router.push("/");
         return;
       }
       const savedState = localStorage.getItem("state");
       if (!state || state !== savedState) {
         console.log("state invalid");
+        router.push("/");
         return;
       }
       const { id_token } = await fetch(`${process.env.NEXT_PUBLIC_APP_URI}/token`, {
@@ -54,5 +57,9 @@ export default function WalletPage() {
     })();
   }, [code, state, router]);
 
-  return <main>Callback</main>;
+  return (
+    <main className="fixed top-0 left-0 w-full h-screen bg-black flex flex-col items-center justify-center z-50 p-2">
+      <FaSpinner className="text-white text-xl animate-spin" />
+    </main>
+  );
 }
