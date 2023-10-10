@@ -77,7 +77,6 @@ export default function WalletPage() {
             </div>
             <div className="mb-4">
               <label className="form-label block text-gray-700 font-bold mb-2">Available Credentials</label>
-              <label className="text-sm form-label block text-gray-500 font-bold mb-2">Credential</label>
               {!vc && (
                 <button
                   className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full mb-2"
@@ -94,8 +93,15 @@ export default function WalletPage() {
                   Get Lens VC
                 </button>
               )}
-              {vc && <div>VC</div>}
-              <label className="text-sm form-label block text-gray-500 font-bold mb-2">Registered with Paymaster</label>
+              {vc && (
+                <div className="relative h-40 bg-gradient-to-br from-purple-500 to-blue-500 text-white rounded-lg shadow-lg mb-2">
+                  <div className="absolute top-2 left-2">
+                    <img src="lens.png" alt="Logo" className="mb-2 w-12 h-12 mx-auto" />
+                  </div>
+                  <div className="absolute bottom-2 right-2">Lens Handle</div>
+                </div>
+              )}
+
               {!isLensHolder && (
                 <button
                   className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
@@ -125,7 +131,7 @@ export default function WalletPage() {
                   Present Lens VC to Paymaster
                 </button>
               )}
-              {isLensHolder && <p className="text-xs mb-2 text-green-600">Registered</p>}
+              {isLensHolder && <p className="text-xs mb-2 text-green-600 text-right">Registered with Paymaster</p>}
             </div>
             <div>
               <label className="form-label block text-gray-700 font-bold mb-2">Connect dApps</label>
