@@ -48,6 +48,7 @@ export default function WalletPage() {
   const [topic, setTopic] = useState("");
   const [isTxPreviewModalOpen, setIsTxPreviewModalOpen] = useState(false);
 
+  const [id, setId] = useState(0);
   const [to, setTo] = useState("");
   const [data, setData] = useState("");
   const [value, setValue] = useState("");
@@ -144,12 +145,15 @@ export default function WalletPage() {
       web3Wallet.on("session_request", async request => {
         if (request.params.request.method === "eth_sendTransaction") {
           console.log("eth_sendTransaction");
+          const id = request.id;
           const to = request.params.request.params[0].to;
           const data = request.params.request.params[0].data;
           const value = request.params.request.params[0].value;
+          setId(id);
           setTo(to);
           setData(data);
           setValue(value);
+          setHash("");
           setIsTxPreviewModalOpen(true);
         }
       });
@@ -357,13 +361,13 @@ export default function WalletPage() {
                           </div>
                         </pre>
                         <button
-                          className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
+                          className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full mb-4"
+                          disabled={!!hash}
                           onClick={async () => {
                             if (!holder) {
                               throw new Error("holder not defined");
                             }
                             const signer = new Wallet(holder.keyPair.privateKey).connect(provider);
-
                             const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
                               type: "General",
                               innerInput: new Uint8Array()
@@ -387,11 +391,24 @@ export default function WalletPage() {
                               }
                             });
                             console.log(tx.hash);
+                            setHash(tx.hash);
+
+                            const response = { id, result: tx.hash, jsonrpc: "2.0" };
+                            console.log(response);
+                            await web3Wallet.respondSessionRequest({ topic, response });
                             await tx.wait();
                           }}
                         >
                           Send Tx
                         </button>
+                        {hash && (
+                          <>
+                            <label className="form-label block text-gray-700 font-bold mb-2">Tx Hash</label>
+                            <p className="text-xs mb-2 text-blue-600">
+                              <a href={`https://goerli.explorer.zksync.io/tx/${hash}`}>{hash}</a>
+                            </p>
+                          </>
+                        )}
                       </div>
                     </div>
                   )}
