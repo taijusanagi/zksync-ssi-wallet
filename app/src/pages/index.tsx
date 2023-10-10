@@ -46,6 +46,12 @@ export default function WalletPage() {
   const [web3Wallet, setWeb3Wallet] = useState<any>();
   const [isConnected, setIsConnected] = useState(false);
   const [topic, setTopic] = useState("");
+  const [isTxPreviewModalOpen, setIsTxPreviewModalOpen] = useState(false);
+
+  const [to, setTo] = useState("");
+  const [data, setData] = useState("");
+  const [value, setValue] = useState("");
+  const [hash, setHash] = useState("");
 
   const sendTx = async () => {
     if (!holder) {
@@ -138,6 +144,13 @@ export default function WalletPage() {
       web3Wallet.on("session_request", async request => {
         if (request.params.request.method === "eth_sendTransaction") {
           console.log("eth_sendTransaction");
+          const to = request.params.request.params[0].to;
+          const data = request.params.request.params[0].data;
+          const value = request.params.request.params[0].value;
+          setTo(to);
+          setData(data);
+          setValue(value);
+          setIsTxPreviewModalOpen(true);
         }
       });
       setWeb3Wallet(web3Wallet);
@@ -227,7 +240,6 @@ export default function WalletPage() {
                   )}
                 </>
               )}
-
               {!isLensHolder && (
                 <button
                   className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
@@ -303,6 +315,86 @@ export default function WalletPage() {
                     Disconnect
                   </button>
                   <p className="text-xs mb-2 text-green-600 text-right">Already connected with dApp</p>
+                  {isTxPreviewModalOpen && (
+                    <div className="fixed inset-0 z-50 flex items-center justify-center p-2">
+                      <div
+                        className="absolute inset-0 bg-black opacity-50"
+                        onClick={() => setIsTxPreviewModalOpen(false)}
+                      ></div>
+                      <div className="relative z-10 bg-white py-4 px-6 rounded-xl shadow-lg max-w-xl w-full mx-4">
+                        <header className="flex justify-between items-center mb-2">
+                          <h2 className="text-sm font-bold text-gray-700">Tx Preview</h2>
+                          <button
+                            onClick={() => setIsTxPreviewModalOpen(false)}
+                            className="text-2xl text-gray-400 hover:text-gray-500"
+                          >
+                            &times;
+                          </button>
+                        </header>
+                        <pre
+                          className="p-2 rounded border border-gray-200 bg-gray-50 overflow-x-auto overflow-y-auto max-h-80 mb-4"
+                          style={{ fontSize: "10px" }}
+                        >
+                          <div className="mb-4">
+                            <label className="form-label block text-gray-700 font-bold mb-2">From</label>
+                            <p className="text-xs">{holder?.did.split(":")[3]}</p>
+                          </div>
+                          <div className="mb-4">
+                            <label className="form-label block text-gray-700 font-bold mb-2">To</label>
+                            <p className="text-xs">{to}</p>
+                          </div>
+                          <div className="mb-4">
+                            <label className="form-label block text-gray-700 font-bold mb-2">Data</label>
+                            <p className="text-xs">{data}</p>
+                          </div>
+                          <div className="mb-4">
+                            <label className="form-label block text-gray-700 font-bold mb-2">Value</label>
+                            <p className="text-xs">{value}</p>
+                          </div>
+                          <div className="mb-4">
+                            <label className="form-label block text-gray-700 font-bold mb-2">Is Sponsored</label>
+                            <p className="text-xs">{isLensHolder.toString()}</p>
+                          </div>
+                        </pre>
+                        <button
+                          className="bg-cyan-500 disabled:opacity-50 text-white py-2 px-4 rounded-lg hover:enabled:bg-cyan-600 w-full"
+                          onClick={async () => {
+                            if (!holder) {
+                              throw new Error("holder not defined");
+                            }
+                            const signer = new Wallet(holder.keyPair.privateKey).connect(provider);
+
+                            const paymasterParams = utils.getPaymasterParams(PAYMASTER_ADDRESS, {
+                              type: "General",
+                              innerInput: new Uint8Array()
+                            });
+                            signer.sendTransaction({
+                              to,
+                              value,
+                              data,
+                              customData: {
+                                gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+                                paymasterParams: paymasterParams
+                              }
+                            });
+                            const tx = await signer.sendTransaction({
+                              to,
+                              value,
+                              data,
+                              customData: {
+                                gasPerPubdata: utils.DEFAULT_GAS_PER_PUBDATA_LIMIT,
+                                paymasterParams: paymasterParams
+                              }
+                            });
+                            console.log(tx.hash);
+                            await tx.wait();
+                          }}
+                        >
+                          Send Tx
+                        </button>
+                      </div>
+                    </div>
+                  )}
                 </>
               )}
             </div>
