@@ -8,11 +8,11 @@ Empower your crypto journey with credentials.
 
 ### Live App
 
-Coming soon!
+https://zksync-ssi-wallet.vercel.app/
 
 ### Demo Video
 
-Coming soon!
+https://youtu.be/N9ZmKLimwgA
 
 ### Pitch Deck
 
